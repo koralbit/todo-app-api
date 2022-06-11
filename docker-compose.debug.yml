@@ -1,0 +1,21 @@
+version: '3.9'
+services:
+  db:
+    image: postgres
+    restart: unless-stopped
+    tty: true
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: url
+    volumes:
+      - todo-app-postgresql:/var/lib/postgresql/data
+volumes:
+  todo-app-postgresql:
+    external: true
+networks:
+  default:
+    external:
+      name: todo-app-network
