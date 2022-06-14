@@ -10,7 +10,8 @@
         "group": "none",
         "presentation": {
           "reveal": "silent",
-          "panel": "new"
+          "panel": "new",
+          "close": true
         }
       },
       {
@@ -19,8 +20,9 @@
         "command": "docker-compose -f ${workspaceFolder}/docker-compose.debug.yml -p todo-app-api-deps down",
         "group": "none",
         "presentation": {
-          "reveal": "silent",
-          "panel": "new"
+          "reveal": "always",
+          "panel": "shared",
+          "close": true
         }
       },
       

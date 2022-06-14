@@ -12,7 +12,8 @@
             "program": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env.local",
             "preLaunchTask": "set-up-env",
-            "postDebugTask": "set-down-env"
+            "postDebugTask": "set-down-env",
+            "console": "integratedTerminal",
         }
     ]
 }

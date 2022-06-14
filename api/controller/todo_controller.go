@@ -18,6 +18,11 @@ type TodoController interface {
 	CreateTodoList(c echo.Context) error
 	UpdateTodoList(c echo.Context) error
 	DeleteTodoList(c echo.Context) error
+
+	GetAllTodoItems(c echo.Context) error
+	GetTodoItem(c echo.Context) error
+	CreateTodoItem(c echo.Context) error
+	UpdateTodoItem(ctx echo.Context) error
 }
 
 type todoController struct {
@@ -38,6 +43,13 @@ func (t todoController) Route(e *echo.Echo) {
 	g.POST("", t.CreateTodoList)
 	g.POST("/:id", t.UpdateTodoList)
 	g.DELETE("/:id", t.DeleteTodoList)
+
+	item := g.Group("/:id/items")
+	item.GET("", t.GetAllTodoItems)
+	item.GET("/:itemId", t.GetTodoItem)
+	item.POST("", t.CreateTodoItem)
+	item.POST("/:itemId", t.UpdateTodoItem)
+	item.DELETE("/:itemId", t.DeleteTodoList)
 }
 
 func (t todoController) GetAllTodoList(ctx echo.Context) error {
@@ -132,4 +144,93 @@ func errorMessage(ctx echo.Context, message string, code int) error {
 	return ctx.JSON(code, echo.Map{
 		"error": message,
 	})
+}
+
+func (t todoController) GetAllTodoItems(ctx echo.Context) error {
+	strId := ctx.Param("id")
+	id, err := strconv.ParseInt(strId, 10, 32)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusBadRequest)
+	}
+	res, err := t.service.GetAllTodoItem(uint(id))
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusInternalServerError)
+	}
+	return ctx.JSON(http.StatusOK, res)
+}
+
+func (t todoController) GetTodoItem(ctx echo.Context) error {
+	strId := ctx.Param("id")
+	id, err := strconv.ParseInt(strId, 10, 32)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusBadRequest)
+	}
+	strItemId := ctx.Param("itemId")
+	itemId, err := strconv.ParseInt(strItemId, 10, 32)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusBadRequest)
+	}
+	res, err := t.service.GetTodoItem(uint(id), uint(itemId))
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusInternalServerError)
+	}
+	if res == nil {
+		return errorMessage(ctx, fmt.Sprintf("Item %d for %d list not found", itemId, id), http.StatusNotFound)
+	}
+	return ctx.JSON(http.StatusOK, res)
+}
+
+func (t todoController) CreateTodoItem(ctx echo.Context) error {
+	strId := ctx.Param("id")
+	id, err := strconv.ParseInt(strId, 10, 32)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusBadRequest)
+	}
+	var request models.TodoItemCreateRequest
+	if err := ctx.Bind(&request); err != nil {
+		return ctx.JSON(http.StatusBadRequest, err)
+	}
+	if err := ctx.Validate(request); err != nil {
+		return err
+	}
+	list := entities.TodoItem{
+		Description: request.Description,
+		TodoListId:  uint(id),
+	}
+	res, err := t.service.CreateTodoItem(uint(id), list)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusInternalServerError)
+	}
+	return ctx.JSON(http.StatusOK, res)
+}
+
+func (t todoController) UpdateTodoItem(ctx echo.Context) error {
+	strId := ctx.Param("id")
+	id, err := strconv.ParseInt(strId, 10, 32)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusBadRequest)
+	}
+	strItemId := ctx.Param("itemId")
+	itemId, err := strconv.ParseInt(strItemId, 10, 32)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusBadRequest)
+	}
+	var request models.TodoIteUpdateRequest
+	if err := ctx.Bind(&request); err != nil {
+		return ctx.JSON(http.StatusBadRequest, err)
+	}
+	if err := ctx.Validate(request); err != nil {
+		return err
+	}
+	item := entities.TodoItem{
+		Done: request.Done,
+	}
+	res, err := t.service.UpdateTodoItem(uint(id), uint(itemId), item)
+	if err != nil {
+		return errorMessage(ctx, err.Error(), http.StatusInternalServerError)
+	}
+	if res == nil {
+		return errorMessage(ctx, fmt.Sprintf("Item %d for %d list not found", itemId, id), http.StatusNotFound)
+	}
+	return ctx.JSON(http.StatusOK, res)
 }

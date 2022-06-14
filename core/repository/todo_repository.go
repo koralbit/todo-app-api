@@ -12,10 +12,11 @@ type TodoRepository interface {
 	UpdateTodoList(id uint, list entities.TodoList) (*entities.TodoList, error)
 	DeleteTodoList(id uint) error
 
-	GetAllTodoItem() ([]entities.TodoItem, error)
+	GetAllTodoItem(todoListId uint) ([]entities.TodoItem, error)
 	GetTodoItem(todoListId uint, id uint) (*entities.TodoItem, error)
 	CreateTodoItem(todoListId uint, item entities.TodoItem) (*entities.TodoItem, error)
-	DeleteTodoItem(id uint) error
+	UpdateTodoItem(todoListId uint, id uint, list entities.TodoItem) (*entities.TodoItem, error)
+	DeleteTodoItem(todoListId uint, id uint) error
 }
 
 type todoRepository struct {
@@ -81,18 +82,49 @@ func (r todoRepository) DeleteTodoList(id uint) error {
 	return nil
 }
 
-func (r todoRepository) GetAllTodoItem() ([]entities.TodoItem, error) {
-	panic("not implemented") // TODO: Implement
+func (r todoRepository) GetAllTodoItem(todoListId uint) ([]entities.TodoItem, error) {
+	var todoItems []entities.TodoItem
+	err := r.db.Order("id asc").Model(entities.TodoItem{TodoListId: todoListId}).Find(&todoItems).Error
+	if err != nil {
+		return nil, err
+	}
+	return todoItems, nil
 }
 
 func (r todoRepository) GetTodoItem(todoListId uint, id uint) (*entities.TodoItem, error) {
-	panic("not implemented") // TODO: Implement
+	todoItem := entities.TodoItem{Id: id, TodoListId: todoListId}
+	res := r.db.Limit(1).Find(&todoItem)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &todoItem, nil
 }
 
 func (r todoRepository) CreateTodoItem(todoListId uint, item entities.TodoItem) (*entities.TodoItem, error) {
-	panic("not implemented") // TODO: Implement
+	item.TodoListId = todoListId
+	err := r.db.Create(&item).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
 }
 
-func (r todoRepository) DeleteTodoItem(id uint) error {
-	panic("not implemented") // TODO: Implement
+func (r todoRepository) UpdateTodoItem(todoListId uint, id uint, list entities.TodoItem) (*entities.TodoItem, error) {
+	err := r.db.Model(&list).Omit("created_at").Update("complete", list.Done).Error
+	if err != nil {
+		return nil, err
+	}
+	return &list, nil
+}
+
+func (r todoRepository) DeleteTodoItem(todoListId uint, id uint) error {
+	todoItem := entities.TodoItem{Id: id, TodoListId: todoListId}
+	err := r.db.Delete(&todoItem).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
